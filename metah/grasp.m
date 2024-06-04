@@ -114,44 +114,19 @@ function [bestNeighbor, bestConnected] = bestNeighbor2(G,current)
     end
 end
 
-% ConnectedNP function
-function out=ConnectedNP(G,selected)
-    % ConnectedNP(G,selected) - Computes the number of node pairs that can communicate
-    %         if the selected nodes are eliminated (returns -1 for invalid input data)
-    %
-    % G:         graph of the network
-    % selected:  a row array with IDs of selected nodes
-        
-    nNodes= numnodes(G);
-    if length(selected)>=1
-        if (max(selected)>nNodes || min(selected)<1 || length(unique(selected))<length(selected))
-            out= -1;
-            return
-        end
-    end
-    aux= setdiff(1:nNodes,selected);
-    Gr= subgraph(G,aux);
-    dist= distances(Gr);
-    out= (sum(dist(:)<Inf) - numnodes(Gr))/2;
-end
-
-% Experiment with different settings and both adaptive search functions
 c_values = [8, 10, 12];
 max_time = 60; % seconds
 
 r = 3;  % r value for GreedyRand
 local_search_time = 13; % seconds for local search (SA-HC) - 13 s is just an example, still need to find the best value!
 
-
-
-%{
- for c = c_values
+for c = c_values
     [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time);
     fprintf('C: %d\n', c);
     fprintf('Best solution: %s, cost: %f\n', mat2str(best_solution), best_value);
     fprintf('---------------------------------------\n');
-    end
-%}
+end
+
 %{
     c = 8;
     [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time);
@@ -161,28 +136,32 @@ local_search_time = 13; % seconds for local search (SA-HC) - 13 s is just an exa
 %}
 
 % run for different c values 10 times and print the results (min, avg, max)
-results = struct('c', {}, 'min_value', {}, 'avg_value', {}, 'max_value', {});
 
-for i = 1:length(c_values)
-    
-    c = c_values(i);
-    values = zeros(1, 10);
-    
-    for k = 1:10
-        [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time);
-        values(k) = best_value;
+%{
+    results = struct('c', {}, 'min_value', {}, 'avg_value', {}, 'max_value', {});
+
+    for i = 1:length(c_values)
+        c = c_values(i);
+        values = zeros(1, 10);  % Run 10 times for each c value
+        
+        for k = 1:10
+            [~, values(k)] = GRASP(G, c, max_time, r, local_search_time);
+        end
+        
+        results(end+1).c = c;
+        results(end+1).min_value = min(values);
+        results(end+1).avg_value = mean(values);
+        results(end+1).max_value = max(values);
     end
-    
-    results(end+1).c = c;
-    results(end+1).min_value = min(values);
-    results(end+1).avg_value = mean(values);
-    results(end+1).max_value = max(values);
-end
 
-% Print results
-for i = 1:length(results)
-    fprintf('C: %d\n', results(i).c);
-    fprintf('Min Value: %f, Avg Value: %f, Max Value: %f\n', results(i).min_value, results(i).avg_value, results(i).max_value);
+    % Print results
+    for i = 1:length(results)
+        fprintf('C: %d\n', results(i).c);
+        fprintf('Min Value: %f\n', results(i).min_value);
+        fprintf('Avg Value: %f\n', results(i).avg_value);
+        fprintf('Max Value: %f\n', results(i).max_value);
         fprintf('---------------------------------------\n');
-end
+    end 
+%}
+
 

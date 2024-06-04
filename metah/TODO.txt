@@ -1,0 +1,5 @@
+
+1 - add timeout to search functions inside the grasp!!! its just running until no further improvement!!
+    > ask prof about this 
+
+2 - fix the prints when running all together
