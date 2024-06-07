@@ -14,12 +14,6 @@ def process_files(directory):
             overall_mean = averages.mean() 
             file_means.append((filename, overall_mean, averages))
 
-            # print(f"Filename: {filename}")
-            # for col in range(len(averages)):
-                # print(f"Average of column {col + 1}: {averages[col]:.2f}")
-            # print(f"Overall mean: {overall_mean:.2f}")
-            #print('---------------------------------------')
-    
     # Sort files by their overall mean values
     file_means.sort(key=lambda x: x[1])
     
