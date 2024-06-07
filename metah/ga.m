@@ -206,8 +206,7 @@ L_file = 'L200.txt';
 
 % Genetic algorithm configurations
 configs = {
-    struct('populationSize', 100, 'mutationRate', 0.2, 'elitismCount', 5),
-    struct('populationSize', 100, 'mutationRate', 0.5, 'elitismCount', 10),
+    struct('populationSize', 100, 'mutationRate', 0.5, 'elitismCount', 50),
 };
 
 
