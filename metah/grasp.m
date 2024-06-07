@@ -9,11 +9,12 @@ nNodes = size(Nodes, 1);
 G = graph(L);
 
 
-function [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time)
-    best_solution = [];
-    best_value = inf;
+function [best_solution, best_value, timeTaken] = GRASP(G, c, max_time, r)
     t_start = tic;
 
+    solution = GreedyRand(G, c, r);
+    [best_value, best_solution, duration] = steepestAscentHillClimbing(G, solution, @bestNeighbor1);
+    timeTaken = duration;
     while toc(t_start) < max_time
         % shuffle seed
         rng('shuffle'); 
@@ -22,15 +23,17 @@ function [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_tim
         solution = GreedyRand(G, c, r);
         
         % Search Phase (Adaptive Search - SA-HC)
-        [value, solution, ~, ~] = steepestAscentHillClimbing(G, solution, @bestNeighbor1, local_search_time);
-        % [value, solution, ~, ~] = steepestAscentHillClimbing(G, solution, @bestNeighbor2, local_search_time);
+        [value, solution, duration] = steepestAscentHillClimbing(G, solution, @bestNeighbor1);
+        % [value, solution, duration] = steepestAscentHillClimbing(G, solution, @bestNeighbor2);
         %fprintf("Solution: %s, Value: %f\n", mat2str(solution), value);
         % Evaluate the solution
         if value < best_value
             best_solution = solution;
             best_value = value;
+            timeTaken = duration;
         end
     end
+
 end
 
 % Greedy Randomized function 
@@ -43,8 +46,7 @@ function sol = GreedyRand(G, c, r)
             R = [ R ; j ConnectedNP(G, [sol j]) ];
         end
         R = sortrows(R, 2);
-        e = R(randi(r), 1);
-        % e = R(randi(min(r, size(R, 1))), 1); % Ensure r is within bounds
+        e = R(randi(min(r, size(R, 1))), 1); % Ensure r is within bounds
         sol = [sol e];
         E = setdiff(E, e);
     end
@@ -52,17 +54,13 @@ function sol = GreedyRand(G, c, r)
     %fprintf('Greedy Randomized solution: %s\n', mat2str(sol));
 end
 
-% SA-HC function GUI with time limit 
-function [nodesConnected, bestSelected, iteractions, duration] = steepestAscentHillClimbing(G, bestSelected, selectFunction, max_time)
+% SA-HC function
+function [nodesConnected, bestSelected, duration] = steepestAscentHillClimbing(G, bestSelected, selectFunction)
     nodesConnected = inf;
     improved = true;
-    iteractions = 0;
     t = tic;
-    solution = bestSelected;
-
-    while improved && toc(t) < max_time
+    while improved
         improved = false;
-        iteractions = iteractions + 1;
         [bestNeighbor, connected] = selectFunction(G, bestSelected);
         if connected < nodesConnected
             nodesConnected = connected;
@@ -72,9 +70,7 @@ function [nodesConnected, bestSelected, iteractions, duration] = steepestAscentH
         end
 
     end
-
-    solution = bestSelected;
-    %fprintf('Best solution: %s, cost: %f\n', mat2str(solution), nodesConnected);
+    % fprintf('Best solution: %s, cost: %f\n', mat2str(solution), nodesConnected);
 
     duration = toc(t);
 end
@@ -114,54 +110,62 @@ function [bestNeighbor, bestConnected] = bestNeighbor2(G,current)
     end
 end
 
-c_values = [8, 10, 12];
-max_time = 60; % seconds
 
-r = 3;  % r value for GreedyRand
-local_search_time = 13; % seconds for local search (SA-HC) - 13 s is just an example, still need to find the best value!
-
-for c = c_values
-    [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time);
-    fprintf('C: %d\n', c);
-    fprintf('Best solution: %s, cost: %f\n', mat2str(best_solution), best_value);
-    fprintf('---------------------------------------\n');
-end
 
 %{
-    c = 8;
-    [best_solution, best_value] = GRASP(G, c, max_time, r, local_search_time);
-    fprintf('C: %d\n', c);
-    fprintf('Best solution: %s, cost: %f\n', mat2str(best_solution), best_value);
-    fprintf('---------------------------------------\n');
-%}
+    % different settings
+    c_values = [8, 10, 12];
+    max_time = 60; % seconds
+    r_values = [3, 5, 10, 50]; % Different r values for GreedyRand
 
-% run for different c values 10 times and print the results (min, avg, max)
-
-%{
-    results = struct('c', {}, 'min_value', {}, 'avg_value', {}, 'max_value', {});
-
-    for i = 1:length(c_values)
-        c = c_values(i);
-        values = zeros(1, 10);  % Run 10 times for each c value
-        
-        for k = 1:10
-            [~, values(k)] = GRASP(G, c, max_time, r, local_search_time);
+    for r = r_values
+        results = zeros(10, length(c_values)); % Initialize results matrix for 10 runs and 3 c values
+        for c_idx = 1:length(c_values)
+            c = c_values(c_idx);
+            for run = 1:10
+                [~, best_value, timeTaken] = GRASP(G, c, max_time, r);
+                results(run, c_idx) = best_value;
+            end
         end
         
-        results(end+1).c = c;
-        results(end+1).min_value = min(values);
-        results(end+1).avg_value = mean(values);
-        results(end+1).max_value = max(values);
-    end
-
-    % Print results
-    for i = 1:length(results)
-        fprintf('C: %d\n', results(i).c);
-        fprintf('Min Value: %f\n', results(i).min_value);
-        fprintf('Avg Value: %f\n', results(i).avg_value);
-        fprintf('Max Value: %f\n', results(i).max_value);
-        fprintf('---------------------------------------\n');
+        % Write results to file
+        filename = sprintf('GRASP2_RES_%d.txt', r);
+        fileID = fopen(filename, 'w');
+        fprintf(fileID, 'Results for r = %d\n', r);
+        fprintf(fileID, 'C8\tC10\tC12\n');
+        for run = 1:10
+            fprintf(fileID, '%f\t%f\t%f\n', results(run, 1), results(run, 2), results(run, 3));
+        end
+        fclose(fileID);
     end 
 %}
+
+% best settings 
+r = 50;
+c_values = [8, 10, 12];
+max_time = 60; % seconds
+% Create results folder if it doesn't exist
+results_folder = 'results_time_GRASP';
+if ~exist(results_folder, 'dir')
+    mkdir(results_folder);
+end
+
+for c = c_values
+    results = zeros(10, 2); % Initialize results matrix for 10 runs
+    for run = 1:10
+        [~, best_value, timeTaken] = GRASP(G, c, max_time, r);
+        results(run, 1) = best_value;
+        results(run, 2) = timeTaken;
+
+        fprintf('Run %d/%d for c=%d completed\n', run, 10, c);
+        fprintf("Best value: %f, Time taken: %f\n", best_value, timeTaken)
+
+    end
+
+    % Write results to file
+    filename = sprintf('%s/GRASP_res_%d_%d.txt', results_folder, c, r);
+    save(filename, 'results', '-ascii', '-tabs');
+    fprintf('Results saved to %s\n', filename);
+end
 
 
