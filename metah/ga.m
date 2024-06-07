@@ -237,6 +237,10 @@ for k = 1:length(configs)
             % Store the best cost and elapsed time in the results matrix
             results(j, 1) = bestCost;
             results(j, 2) = elapsedTime;
+
+            fprintf('Run %d/%d for c=%d completed\n', j, 10, c);
+            fprintf("Best cost: %f, Elapsed time: %f\n", bestCost, elapsedTime);
+
         end
 
         % Save the results to a file
